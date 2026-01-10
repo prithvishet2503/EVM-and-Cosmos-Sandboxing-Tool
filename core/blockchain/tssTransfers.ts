@@ -4,21 +4,17 @@ import type { Hash } from 'crypto';
 import { Ecdsa, ECDSAMethodTypes } from '@bitgo/sdk-core';
 import * as EthTx from '@ethereumjs/tx';
 import * as ethUtil from 'ethereumjs-util';
-import { default as Common } from '@ethereumjs/common';
+import * as EthCommon from '@ethereumjs/common';
 import type { Config } from '../config/base.js';
 import type { TransferParams } from '../types/index.js';
+import type * as EthCommonType from "@ethereumjs/common";
 import type * as EthTxLibType from "@ethereumjs/tx";
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export const executeTssTransfer = async (config: Config, params: TransferParams) => {
     const MPC = new Ecdsa();
-    // await config.loadAccounts(chain);
-    const secondAccount=  config.secondAccount;
+    const secondAccount = config.secondAccount;
     const receiver = config.receiver;
+
     // Load TSS Shares - use dynamic import with proper path resolution
     const { default: fixtures } = await import('../config/fixtures.json', { assert: { type: 'json' } });
     const { userXShare, userYShare, backupXShare, backupYShare } = fixtures.tss;
@@ -51,7 +47,7 @@ export const executeTssTransfer = async (config: Config, params: TransferParams)
     // Web3 Setup
     const web3 = new Web3(new Web3.providers.HttpProvider(config.rpc));
     const balance = await web3.eth.getBalance(secondAccount.address);
-    const gasLimit = BigInt(await config.getGasLimit());
+    const gasLimit = BigInt(await config.getGasLimit(secondAccount.address, receiver.address));
     const feeHistory = await web3.eth.getFeeHistory(1, 'latest', []);
     const baseFeePerGas = BigInt(feeHistory.baseFeePerGas[0]);
     const maxPriorityFeePerGas = BigInt(web3.utils.toWei('2', 'gwei'));
@@ -59,8 +55,12 @@ export const executeTssTransfer = async (config: Config, params: TransferParams)
     const maxFeePerGas = baseFeePerGas + maxPriorityFeePerGas;
     console.log(`ℹ️ balance: ${balance}, maxFeePerGas: ${maxFeePerGas}, gasLimit: ${gasLimit}, value: ${value}`);
     if (BigInt(balance) < maxFeePerGas * gasLimit + value) {
-        console.error(`❌Insufficient balance for transaction. balance: ${BigInt(balance)} is less than expected: ${maxFeePerGas * gasLimit + value} `);
-        return;
+        const required = maxFeePerGas * gasLimit + value;
+        throw new Error(
+            `❌ Insufficient balance for transaction.\n` +
+            `💰 Balance: ${web3.utils.fromWei(balance.toString(), 'ether')} ETH\n` +
+            `📊 Required: ${web3.utils.fromWei(required.toString(), 'ether')} ETH`
+        );
     }
 
     const baseParams = {
@@ -75,7 +75,7 @@ export const executeTssTransfer = async (config: Config, params: TransferParams)
     };
 
     // Transaction Creation & Signing
-    const defaultCommon = Common.forCustomChain(
+    const defaultCommon = EthCommon.default.forCustomChain(
         'mainnet',
         { name: config.chainName, networkId: config.networkId, chainId: config.chainId },
         'london'
@@ -95,10 +95,19 @@ export const executeTssTransfer = async (config: Config, params: TransferParams)
     console.log(`Executing transaction on ${config.chainName}`);
     const receipt = await web3.eth.sendSignedTransaction(txHex);
     console.log('🎉 Transaction successful! Hash:', receipt.transactionHash);
-    console.log('💡Use getBlockDetails, getTxnDetails commands to know more about the transaction')
+    console.log('💡Use getBlockDetails, getTxnDetails commands to know more about the transaction');
+
+    return {
+        transactionHash: receipt.transactionHash.toString(),
+        blockNumber: receipt.blockNumber.toString(),
+        from: receipt.from.toString(),
+        to: receipt.to ? receipt.to.toString() : receiver.address,
+        status: Boolean(receipt.status),
+        gasUsed: receipt.gasUsed.toString()
+    };
 };
 
-async function getSignedTxFromSignature(ethCommon: typeof Common, tx: EthTxLibType.FeeMarketEIP1559Transaction | EthTxLibType.Transaction, signature: ECDSAMethodTypes.Signature) {
+async function getSignedTxFromSignature(ethCommon: EthCommonType.default, tx: EthTxLibType.FeeMarketEIP1559Transaction | EthTxLibType.Transaction, signature: ECDSAMethodTypes.Signature) {
     const txData = tx.toJSON();
     const yParity = signature.recid;
     const baseParams = {
