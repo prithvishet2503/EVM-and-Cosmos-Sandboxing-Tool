@@ -32,6 +32,14 @@ interface TestResults {
   };
   tssTransfer?: {
     success: boolean;
+    data?: {
+      transactionHash: string;
+      blockNumber: string;
+      from: string;
+      to: string;
+      gasUsed: string;
+      status: boolean;
+    };
     error?: string;
   };
   rpcTesting?: {
@@ -189,8 +197,17 @@ export function generateTestReport(results: TestResults): jsPDF {
     yPosition += 8;
 
     const tssData: string[][] = [];
-    if (results.tssTransfer.success) {
-      tssData.push(['Status', '✓ Success']);
+    if (results.tssTransfer.success && results.tssTransfer.data) {
+      const data = results.tssTransfer.data;
+      tssData.push(
+        ['Status', '✓ Success'],
+        ['Transaction Hash', data.transactionHash],
+        ['Block Number', data.blockNumber],
+        ['From', data.from],
+        ['To', data.to],
+        ['Gas Used', data.gasUsed],
+        ['Transaction Status', data.status ? 'Confirmed' : 'Failed']
+      );
     } else {
       tssData.push(
         ['Status', '✗ Failed'],
@@ -204,7 +221,7 @@ export function generateTestReport(results: TestResults): jsPDF {
       theme: 'plain',
       margin: { left: 14, right: 14 },
       columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 40 },
+        0: { fontStyle: 'bold', cellWidth: 50 },
       },
     });
 

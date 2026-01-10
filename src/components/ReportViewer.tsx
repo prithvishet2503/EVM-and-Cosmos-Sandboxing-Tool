@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { CheckCircle2, XCircle, Activity, Zap, Network, FileDown } from 'lucide-react';
+import { CheckCircle2, XCircle, Activity, Network, FileDown } from 'lucide-react';
 
 interface ReportViewerProps {
   results: any;
@@ -137,12 +137,12 @@ export function ReportViewer({ results }: ReportViewerProps) {
                     </div>
                   )}
 
-                  {/* Transfer Data */}
-                  {value.data.txHash && (
+                  {/* Transfer Data - handles both txHash and transactionHash */}
+                  {(value.data.txHash || value.data.transactionHash) && (
                     <div className="space-y-2 p-3 bg-blue-50 rounded-lg">
-                      <div className="space-y-1">
+                       <div className="space-y-1">
                         <p className="text-xs text-blue-700 font-semibold">Transaction Hash</p>
-                        <p className="text-sm text-blue-900 font-mono truncate">{value.data.txHash}</p>
+                        <p className="text-sm text-blue-900 font-mono truncate">{value.data.txHash || value.data.transactionHash}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>

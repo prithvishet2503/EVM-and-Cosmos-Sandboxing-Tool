@@ -79,8 +79,11 @@ export function registerChainOperationsHandlers() {
       // 3. Execute TSS transfer (may fail, that's ok)
       try {
         const configAdapter = new ChainConfigAdapter(chainConfig);
-        await executeTssTransfer(configAdapter, {});
-        results.tssTransfer = { success: true };
+        const tssResult = await executeTssTransfer(configAdapter, {});
+        results.tssTransfer = {
+          success: true,
+          data: tssResult,
+        };
       } catch (error: any) {
         results.tssTransfer = {
           success: false,
@@ -139,8 +142,8 @@ export function registerChainOperationsHandlers() {
   ipcMain.handle('chain:tss-transfer', async (_event, chainConfig: ChainConfig, params: any) => {
     try {
       const configAdapter = new ChainConfigAdapter(chainConfig);
-      await executeTssTransfer(configAdapter, params);
-      return { success: true };
+      const result = await executeTssTransfer(configAdapter, params);
+      return { success: true, data: result };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
