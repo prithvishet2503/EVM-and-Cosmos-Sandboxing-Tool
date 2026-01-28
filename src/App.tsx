@@ -15,6 +15,7 @@ export interface ChainConfig {
   networkId: number;
   chainName: string;
   nativeSymbol: string;
+  jiraTicket?: string;
   sender: { address: string; privateKey: string };
   receiver: { address: string; privateKey: string };
   secondAccount: { address: string; privateKey: string };
@@ -51,10 +52,11 @@ function App() {
     );
   }
 
-  if (stage === 'funding' && chainConfig && chainConfig.sender) {
+  if (stage === 'funding' && chainConfig && chainConfig.sender && chainConfig.secondAccount) {
     return (
       <FundingInstructions
         senderAddress={chainConfig.sender.address}
+        secondAccountAddress={chainConfig.secondAccount.address}
         rpcUrl={chainConfig.rpc!}
         chainName={chainConfig.chainName!}
         nativeSymbol={chainConfig.nativeSymbol!}

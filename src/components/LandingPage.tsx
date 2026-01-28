@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
+import bitgoLogo from '../assets/bitgo.png';
 
 interface LandingPageProps {
   onSelectType: (type: 'evm' | 'cosmos') => void;
@@ -11,30 +12,11 @@ export function LandingPage({ onSelectType }: LandingPageProps) {
       {/* BitGo Logo */}
       <div className="mb-12 text-center">
         <div className="mb-8 flex justify-center">
-          <svg
-            width="200"
-            height="60"
-            viewBox="0 0 200 60"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="drop-shadow-lg"
-          >
-            {/* BitGo Logo - Simplified representation */}
-            <rect x="10" y="15" width="30" height="30" rx="6" fill="#0066FF" />
-            <rect x="20" y="25" width="10" height="10" rx="2" fill="white" />
-
-            {/* BitGo Text */}
-            <text
-              x="50"
-              y="40"
-              fontFamily="Arial, sans-serif"
-              fontSize="32"
-              fontWeight="700"
-              fill="#0066FF"
-            >
-              BitGo
-            </text>
-          </svg>
+          <img
+            src={bitgoLogo}
+            alt="BitGo Logo"
+            className="h-20 drop-shadow-lg"
+          />
         </div>
 
         <h1 className="text-5xl font-bold text-gray-900 mb-4">

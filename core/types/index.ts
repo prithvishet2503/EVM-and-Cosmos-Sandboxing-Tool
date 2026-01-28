@@ -27,6 +27,7 @@ export interface ChainConfig {
   chainId: number;
   networkId: number;
   chainName: string;
+  jiraTicket?: string;
   sender: Account;
   receiver: Account;
   secondAccount: Account;
