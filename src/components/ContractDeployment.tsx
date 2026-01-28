@@ -439,7 +439,7 @@ function generateDeploymentReport(results: DeploymentResults, config: EVMChainCo
 ## Deployed Contracts
 
 ${Object.entries(results.contracts)
-  .map(([key, contract]) => {
+  .map(([_key, contract]) => {
     if (!contract) return '';
     return `### ${contract.name}
 - **Status:** ${contract.status === 'success' ? '✅ Success' : '❌ Failed'}
@@ -490,7 +490,7 @@ ${Object.entries(results.contracts)
 | Contract | Gas Used | Cost (${config.nativeSymbol}) |
 |----------|----------|------|
 ${Object.entries(results.contracts)
-  .map(([key, contract]) => {
+  .map(([_key, contract]) => {
     if (!contract) return '';
     return `| ${contract.name} | ${contract.gasUsed} | ${contract.deploymentCost} |`;
   })

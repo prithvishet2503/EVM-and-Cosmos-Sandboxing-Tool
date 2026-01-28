@@ -1,6 +1,5 @@
 import { ipcMain } from 'electron';
 import { createWeb3Instance } from '../../core/blockchain/web3Utils.js';
-import Web3 from 'web3';
 import { WALLET_SIMPLE_BYTECODE, WALLET_FACTORY_BYTECODE, FORWARDER_V4_BYTECODE, FORWARDER_FACTORY_V4_BYTECODE } from './contractBytecodes.js';
 import { AbiCoder } from 'ethers';
 
@@ -176,7 +175,7 @@ export function registerContractDeploymentHandlers() {
   });
 
   // Fetch contract bytecode from GitHub (for actual implementation)
-  ipcMain.handle('contract:fetchBytecode', async (_event, contractName: string) => {
+  ipcMain.handle('contract:fetchBytecode', async (_event, _contractName: string) => {
     try {
       // This would fetch compiled bytecode from the eth-multisig-v4 repo
       // For now, returning placeholder
