@@ -43,8 +43,8 @@ export const executeTransfer = async (config: Config, params: TransferParams): P
             from,
             to,
             gasLimit: gasLimit,
-            gasPrice: web3.utils.toHex(gasPrice.toString()),
-            value: web3.utils.toHex(valueInWei.toString()),
+            gasPrice: Number(gasPrice.toString()),
+            value: valueInWei,
         };
         const estimatedCost = BigInt(limit) * BigInt(gasPrice.toString());
         const totalAmount = estimatedCost + BigInt(valueInWei);

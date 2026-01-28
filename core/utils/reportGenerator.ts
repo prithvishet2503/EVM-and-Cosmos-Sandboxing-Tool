@@ -6,6 +6,7 @@ interface ChainConfig {
   chainId: number;
   rpc: string;
   nativeSymbol: string;
+  jiraTicket?: string;
 }
 
 interface TestResults {
@@ -70,29 +71,44 @@ export function generateTestReport(results: TestResults): jsPDF {
   const doc = new jsPDF();
   let yPosition = 20;
 
-  // Add BitGo logo/title
-  doc.setFontSize(24);
+  // Add BitGo logo/title with modern styling
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 102, 255); // BitGo blue
   doc.text('BitGo Blockchain Test Report', 105, yPosition, { align: 'center' });
 
-  yPosition += 10;
+  yPosition += 8;
+  // Add divider line
+  doc.setDrawColor(0, 102, 255);
+  doc.setLineWidth(1.5);
+  doc.line(50, yPosition, 160, yPosition);
+
+  yPosition += 8;
   doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
   doc.text(`Generated: ${new Date().toLocaleString()}`, 105, yPosition, { align: 'center' });
 
   yPosition += 15;
 
   // Chain Configuration Section
-  doc.setFontSize(16);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 102, 255);
   doc.text('Chain Configuration', 14, yPosition);
-  yPosition += 8;
+  yPosition += 2;
+  // Add section underline
+  doc.setDrawColor(0, 102, 255);
+  doc.setLineWidth(0.5);
+  doc.line(14, yPosition, 70, yPosition);
+  yPosition += 6;
 
   const chainData = [
     ['Chain Name', results.chainConfig.chainName],
     ['Chain ID', results.chainConfig.chainId.toString()],
     ['Native Symbol', results.chainConfig.nativeSymbol],
     ['RPC URL', results.chainConfig.rpc],
+    ...(results.chainConfig.jiraTicket ? [['JIRA Ticket', results.chainConfig.jiraTicket]] : []),
   ];
 
   autoTable(doc, {
@@ -100,7 +116,19 @@ export function generateTestReport(results: TestResults): jsPDF {
     head: [['Property', 'Value']],
     body: chainData,
     theme: 'striped',
-    headStyles: { fillColor: [0, 102, 255] },
+    headStyles: {
+      fillColor: [0, 102, 255],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 11
+    },
+    bodyStyles: {
+      fontSize: 10,
+      textColor: [50, 50, 50]
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 250]
+    },
     margin: { left: 14, right: 14 },
   });
 
@@ -108,21 +136,26 @@ export function generateTestReport(results: TestResults): jsPDF {
 
   // Balance Check Section
   if (results.balance) {
-    doc.setFontSize(16);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 102, 255);
     doc.text('Balance Check', 14, yPosition);
-    yPosition += 8;
+    yPosition += 2;
+    doc.setDrawColor(0, 102, 255);
+    doc.setLineWidth(0.5);
+    doc.line(14, yPosition, 55, yPosition);
+    yPosition += 6;
 
     const balanceData: string[][] = [];
     if (results.balance.success && results.balance.data) {
       balanceData.push(
-        ['Status', '✓ Success'],
+        ['Status', 'Success'],
         ['Address', results.balance.data.address],
         ['Balance', `${results.balance.data.balance} ${results.chainConfig.nativeSymbol}`]
       );
     } else {
       balanceData.push(
-        ['Status', '✗ Failed'],
+        ['Status', 'Failed'],
         ['Error', results.balance.error || 'Unknown error']
       );
     }
@@ -133,8 +166,28 @@ export function generateTestReport(results: TestResults): jsPDF {
       theme: 'plain',
       margin: { left: 14, right: 14 },
       columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 40 },
+        0: {
+          fontStyle: 'bold',
+          cellWidth: 40,
+          textColor: [70, 70, 70]
+        },
+        1: {
+          textColor: [50, 50, 50]
+        }
       },
+      bodyStyles: {
+        fontSize: 10
+      },
+      didParseCell: function(data) {
+        // Color code status cells
+        if (data.cell.text[0] === 'Success') {
+          data.cell.styles.textColor = [34, 139, 34]; // Green
+          data.cell.styles.fontStyle = 'bold';
+        } else if (data.cell.text[0] === 'Failed') {
+          data.cell.styles.textColor = [220, 20, 60]; // Red
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
@@ -147,16 +200,21 @@ export function generateTestReport(results: TestResults): jsPDF {
       yPosition = 20;
     }
 
-    doc.setFontSize(16);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 102, 255);
     doc.text('Legacy Tx - EIP-155 (Type 0)', 14, yPosition);
-    yPosition += 8;
+    yPosition += 2;
+    doc.setDrawColor(0, 102, 255);
+    doc.setLineWidth(0.5);
+    doc.line(14, yPosition, 80, yPosition);
+    yPosition += 6;
 
     const transferData: string[][] = [];
     if (results.legacyTransfer.success && results.legacyTransfer.data) {
       const data = results.legacyTransfer.data;
       transferData.push(
-        ['Status', '✓ Success'],
+        ['Status', 'Success'],
         ['Transaction Hash', data.transactionHash],
         ['Block Number', data.blockNumber],
         ['From', data.from],
@@ -166,7 +224,7 @@ export function generateTestReport(results: TestResults): jsPDF {
       );
     } else {
       transferData.push(
-        ['Status', '✗ Failed'],
+        ['Status', 'Failed'],
         ['Error', results.legacyTransfer.error || 'Unknown error']
       );
     }
@@ -177,8 +235,27 @@ export function generateTestReport(results: TestResults): jsPDF {
       theme: 'plain',
       margin: { left: 14, right: 14 },
       columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 50 },
+        0: {
+          fontStyle: 'bold',
+          cellWidth: 55,
+          textColor: [70, 70, 70]
+        },
+        1: {
+          textColor: [50, 50, 50]
+        }
       },
+      bodyStyles: {
+        fontSize: 9
+      },
+      didParseCell: function(data) {
+        if (data.cell.text[0] === 'Success' || data.cell.text[0] === 'Confirmed') {
+          data.cell.styles.textColor = [34, 139, 34];
+          data.cell.styles.fontStyle = 'bold';
+        } else if (data.cell.text[0] === 'Failed') {
+          data.cell.styles.textColor = [220, 20, 60];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
@@ -191,16 +268,21 @@ export function generateTestReport(results: TestResults): jsPDF {
       yPosition = 20;
     }
 
-    doc.setFontSize(16);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 102, 255);
     doc.text('EIP-1559 Tx (Type 2)', 14, yPosition);
-    yPosition += 8;
+    yPosition += 2;
+    doc.setDrawColor(0, 102, 255);
+    doc.setLineWidth(0.5);
+    doc.line(14, yPosition, 70, yPosition);
+    yPosition += 6;
 
     const tssData: string[][] = [];
     if (results.tssTransfer.success && results.tssTransfer.data) {
       const data = results.tssTransfer.data;
       tssData.push(
-        ['Status', '✓ Success'],
+        ['Status', 'Success'],
         ['Transaction Hash', data.transactionHash],
         ['Block Number', data.blockNumber],
         ['From', data.from],
@@ -210,7 +292,7 @@ export function generateTestReport(results: TestResults): jsPDF {
       );
     } else {
       tssData.push(
-        ['Status', '✗ Failed'],
+        ['Status', 'Failed'],
         ['Error', results.tssTransfer.error || 'Unknown error']
       );
     }
@@ -221,8 +303,27 @@ export function generateTestReport(results: TestResults): jsPDF {
       theme: 'plain',
       margin: { left: 14, right: 14 },
       columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 50 },
+        0: {
+          fontStyle: 'bold',
+          cellWidth: 55,
+          textColor: [70, 70, 70]
+        },
+        1: {
+          textColor: [50, 50, 50]
+        }
       },
+      bodyStyles: {
+        fontSize: 9
+      },
+      didParseCell: function(data) {
+        if (data.cell.text[0] === 'Success' || data.cell.text[0] === 'Confirmed') {
+          data.cell.styles.textColor = [34, 139, 34];
+          data.cell.styles.fontStyle = 'bold';
+        } else if (data.cell.text[0] === 'Failed') {
+          data.cell.styles.textColor = [220, 20, 60];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
@@ -233,10 +334,15 @@ export function generateTestReport(results: TestResults): jsPDF {
     doc.addPage();
     yPosition = 20;
 
-    doc.setFontSize(16);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 102, 255);
     doc.text('RPC Methods Testing', 14, yPosition);
-    yPosition += 8;
+    yPosition += 2;
+    doc.setDrawColor(0, 102, 255);
+    doc.setLineWidth(0.5);
+    doc.line(14, yPosition, 75, yPosition);
+    yPosition += 6;
 
     const rpcData = results.rpcTesting.data;
 
@@ -253,7 +359,19 @@ export function generateTestReport(results: TestResults): jsPDF {
       head: [['Summary', '']],
       body: summaryData,
       theme: 'striped',
-      headStyles: { fillColor: [0, 102, 255] },
+      headStyles: {
+        fillColor: [0, 102, 255],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 11
+      },
+      bodyStyles: {
+        fontSize: 10,
+        textColor: [50, 50, 50]
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 250]
+      },
       margin: { left: 14, right: 14 },
     });
 
@@ -269,14 +387,20 @@ export function generateTestReport(results: TestResults): jsPDF {
       }
 
       doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 102, 255);
       doc.text(category, 14, yPosition);
-      yPosition += 6;
+      yPosition += 2;
+      doc.setDrawColor(0, 102, 255);
+      doc.setLineWidth(0.3);
+      const textWidth = doc.getTextWidth(category);
+      doc.line(14, yPosition, 14 + textWidth, yPosition);
+      yPosition += 4;
 
       const categoryResults = rpcData.results.filter((r) => r.category === category);
       const tableData = categoryResults.map((r) => [
         r.method,
-        r.supported ? '✓ Supported' : '✗ Not Supported',
+        r.supported ? 'Supported' : 'Not Supported',
         `${r.executionTime}ms`,
         r.error || 'Working',
       ]);
@@ -286,8 +410,19 @@ export function generateTestReport(results: TestResults): jsPDF {
         head: [['Method', 'Status', 'Time', 'Notes']],
         body: tableData,
         theme: 'striped',
-        headStyles: { fillColor: [0, 102, 255], fontSize: 9 },
-        bodyStyles: { fontSize: 8 },
+        headStyles: {
+          fillColor: [0, 102, 255],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [50, 50, 50]
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 250]
+        },
         margin: { left: 14, right: 14 },
         columnStyles: {
           0: { cellWidth: 60 },
@@ -295,6 +430,17 @@ export function generateTestReport(results: TestResults): jsPDF {
           2: { cellWidth: 25 },
           3: { cellWidth: 'auto' },
         },
+        didParseCell: function(data) {
+          if (data.column.index === 1 && data.section === 'body') {
+            if (data.cell.text[0] === 'Supported') {
+              data.cell.styles.textColor = [34, 139, 34];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (data.cell.text[0] === 'Not Supported') {
+              data.cell.styles.textColor = [220, 20, 60];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
       });
 
       yPosition = (doc as any).lastAutoTable.finalY + 12;

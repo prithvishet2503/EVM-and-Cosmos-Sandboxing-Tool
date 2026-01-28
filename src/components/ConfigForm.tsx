@@ -18,6 +18,7 @@ export function ConfigForm({ selectedChain, onConfigSaved }: ConfigFormProps) {
     chainId: 0,
     networkId: 0,
     nativeSymbol: '',
+    jiraTicket: '',
     sender: { address: '', privateKey: '' },
     receiver: { address: '', privateKey: '' },
     secondAccount: { address: '', privateKey: '' },
@@ -61,6 +62,7 @@ export function ConfigForm({ selectedChain, onConfigSaved }: ConfigFormProps) {
       chainId: 0,
       networkId: 0,
       nativeSymbol: '',
+      jiraTicket: '',
       sender: { address: '', privateKey: '' },
       receiver: { address: '', privateKey: '' },
       secondAccount: { address: '', privateKey: '' },
@@ -166,6 +168,19 @@ export function ConfigForm({ selectedChain, onConfigSaved }: ConfigFormProps) {
                 placeholder="e.g., ETH, MATIC"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="jiraTicket" className="text-gray-700 font-semibold">
+              JIRA Ticket 
+            </Label>
+            <Input
+              id="jiraTicket"
+              value={config.jiraTicket || ''}
+              onChange={(e) => setConfig({ ...config, jiraTicket: e.target.value })}
+              className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
+              placeholder="e.g., https://jira.company.com/browse/WIN-4720"
+            />
           </div>
         </div>
 
