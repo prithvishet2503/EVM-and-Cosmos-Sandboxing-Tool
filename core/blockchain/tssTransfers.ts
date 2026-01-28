@@ -4,13 +4,12 @@ import type { Hash } from 'crypto';
 import { Ecdsa, ECDSAMethodTypes } from '@bitgo/sdk-core';
 import * as EthTx from '@ethereumjs/tx';
 import * as ethUtil from 'ethereumjs-util';
-import * as EthCommon from '@ethereumjs/common';
+import Common from '@ethereumjs/common';
 import type { Config } from '../config/base.js';
 import type { TransferParams } from '../types/index.js';
-import type * as EthCommonType from "@ethereumjs/common";
 import type * as EthTxLibType from "@ethereumjs/tx";
 
-export const executeTssTransfer = async (config: Config, params: TransferParams) => {
+export const executeTssTransfer = async (config: Config, _params: TransferParams) => {
     const MPC = new Ecdsa();
     const secondAccount = config.secondAccount;
     const receiver = config.receiver;
@@ -75,7 +74,7 @@ export const executeTssTransfer = async (config: Config, params: TransferParams)
     };
 
     // Transaction Creation & Signing
-    const defaultCommon = EthCommon.Common.custom({
+    const defaultCommon = Common.custom({
         name: config.chainName,
         networkId: config.networkId,
         chainId: config.chainId,
@@ -107,7 +106,7 @@ export const executeTssTransfer = async (config: Config, params: TransferParams)
     };
 };
 
-async function getSignedTxFromSignature(ethCommon: EthCommonType.default, tx: EthTxLibType.FeeMarketEIP1559Transaction | EthTxLibType.Transaction, signature: ECDSAMethodTypes.Signature) {
+async function getSignedTxFromSignature(ethCommon: Common, tx: EthTxLibType.FeeMarketEIP1559Transaction | EthTxLibType.Transaction, signature: ECDSAMethodTypes.Signature) {
     const txData = tx.toJSON();
     const yParity = signature.recid;
     const baseParams = {

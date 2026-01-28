@@ -94,6 +94,43 @@ interface TestResults {
     };
     error?: string;
   };
+  contractDeployment?: {
+    success: boolean;
+    contracts?: {
+      walletImplementation?: {
+        name: string;
+        address: string;
+        transactionHash: string;
+        gasUsed: string;
+        deploymentCost: string;
+      };
+      walletFactory?: {
+        name: string;
+        address: string;
+        transactionHash: string;
+        gasUsed: string;
+        deploymentCost: string;
+      };
+      forwarderImplementation?: {
+        name: string;
+        address: string;
+        transactionHash: string;
+        gasUsed: string;
+        deploymentCost: string;
+      };
+      forwarderFactory?: {
+        name: string;
+        address: string;
+        transactionHash: string;
+        gasUsed: string;
+        deploymentCost: string;
+      };
+    };
+    totalGasUsed?: string;
+    totalCostEth?: string;
+    deploymentTime?: number;
+    errors?: string[];
+  };
 }
 
 export function generateTestReport(results: TestResults): jsPDF {
@@ -495,6 +532,182 @@ export function generateTestReport(results: TestResults): jsPDF {
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // Contract Deployment Section
+  if (results.contractDeployment) {
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 102, 255);
+    doc.text('BitGo Contract Deployment', 14, yPosition);
+    yPosition += 2;
+    doc.setDrawColor(0, 102, 255);
+    doc.setLineWidth(0.5);
+    doc.line(14, yPosition, 85, yPosition);
+    yPosition += 6;
+
+    if (results.contractDeployment.success && results.contractDeployment.contracts) {
+      // Summary
+      const summaryData: string[][] = [
+        ['Status', 'Success'],
+        ['Total Gas Used', results.contractDeployment.totalGasUsed || 'N/A'],
+        ['Total Cost', `${results.contractDeployment.totalCostEth || 'N/A'} ${results.chainConfig.nativeSymbol || 'ETH'}`],
+        ['Deployment Time', `${((results.contractDeployment.deploymentTime || 0) / 1000).toFixed(2)}s`],
+      ];
+
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Summary', '']],
+        body: summaryData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [0, 102, 255],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 11
+        },
+        bodyStyles: {
+          fontSize: 10,
+          textColor: [50, 50, 50]
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 250]
+        },
+        margin: { left: 14, right: 14 },
+        didParseCell: function(data) {
+          if (data.cell.text[0] === 'Success') {
+            data.cell.styles.textColor = [34, 139, 34];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 12;
+
+      // Deployed Contracts
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 102, 255);
+      doc.text('Deployed Contracts', 14, yPosition);
+      yPosition += 2;
+      doc.setDrawColor(0, 102, 255);
+      doc.setLineWidth(0.3);
+      doc.line(14, yPosition, 65, yPosition);
+      yPosition += 6;
+
+      const contracts = results.contractDeployment.contracts;
+      const contractsData: string[][] = [];
+
+      if (contracts.walletImplementation) {
+        contractsData.push(
+          ['WalletSimple (Implementation)', ''],
+          ['  Address', contracts.walletImplementation.address],
+          ['  Transaction Hash', contracts.walletImplementation.transactionHash],
+          ['  Gas Used', contracts.walletImplementation.gasUsed],
+          ['  Cost', `${contracts.walletImplementation.deploymentCost} ${results.chainConfig.nativeSymbol || 'ETH'}`]
+        );
+      }
+
+      if (contracts.walletFactory) {
+        contractsData.push(
+          ['WalletFactory', ''],
+          ['  Address', contracts.walletFactory.address],
+          ['  Transaction Hash', contracts.walletFactory.transactionHash],
+          ['  Gas Used', contracts.walletFactory.gasUsed],
+          ['  Cost', `${contracts.walletFactory.deploymentCost} ${results.chainConfig.nativeSymbol || 'ETH'}`]
+        );
+      }
+
+      if (contracts.forwarderImplementation) {
+        contractsData.push(
+          ['ForwarderV4 (Implementation)', ''],
+          ['  Address', contracts.forwarderImplementation.address],
+          ['  Transaction Hash', contracts.forwarderImplementation.transactionHash],
+          ['  Gas Used', contracts.forwarderImplementation.gasUsed],
+          ['  Cost', `${contracts.forwarderImplementation.deploymentCost} ${results.chainConfig.nativeSymbol || 'ETH'}`]
+        );
+      }
+
+      if (contracts.forwarderFactory) {
+        contractsData.push(
+          ['ForwarderFactoryV4', ''],
+          ['  Address', contracts.forwarderFactory.address],
+          ['  Transaction Hash', contracts.forwarderFactory.transactionHash],
+          ['  Gas Used', contracts.forwarderFactory.gasUsed],
+          ['  Cost', `${contracts.forwarderFactory.deploymentCost} ${results.chainConfig.nativeSymbol || 'ETH'}`]
+        );
+      }
+
+      autoTable(doc, {
+        startY: yPosition,
+        body: contractsData,
+        theme: 'plain',
+        margin: { left: 14, right: 14 },
+        columnStyles: {
+          0: {
+            fontStyle: 'bold',
+            cellWidth: 65,
+            textColor: [70, 70, 70]
+          },
+          1: {
+            textColor: [50, 50, 50],
+            fontSize: 8
+          }
+        },
+        bodyStyles: {
+          fontSize: 9
+        },
+        didParseCell: function(data) {
+          // Make contract names more prominent
+          if (data.row.index % 5 === 0) {
+            data.cell.styles.fillColor = [240, 248, 255];
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.textColor = [0, 102, 255];
+          }
+        }
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
+    } else {
+      // Deployment failed
+      const failureData: string[][] = [
+        ['Status', 'Failed'],
+        ['Errors', (results.contractDeployment.errors || ['Unknown error']).join(', ')]
+      ];
+
+      autoTable(doc, {
+        startY: yPosition,
+        body: failureData,
+        theme: 'plain',
+        margin: { left: 14, right: 14 },
+        columnStyles: {
+          0: {
+            fontStyle: 'bold',
+            cellWidth: 40,
+            textColor: [70, 70, 70]
+          },
+          1: {
+            textColor: [50, 50, 50]
+          }
+        },
+        bodyStyles: {
+          fontSize: 10
+        },
+        didParseCell: function(data) {
+          if (data.cell.text[0] === 'Failed') {
+            data.cell.styles.textColor = [220, 20, 60];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
+    }
   }
 
   // RPC Testing Section
