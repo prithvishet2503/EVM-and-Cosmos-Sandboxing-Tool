@@ -43,12 +43,11 @@ export function LandingPage({ onSelectType }: LandingPageProps) {
         <Button
           onClick={() => onSelectType('cosmos')}
           size="lg"
-          disabled
-          className="group relative overflow-hidden bg-gradient-to-r from-gray-300 to-gray-200 text-gray-500 px-12 py-8 text-xl font-semibold rounded-2xl shadow-xl cursor-not-allowed"
+          className="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white px-12 py-8 text-xl font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
         >
           <div className="flex items-center gap-3">
             <span>Cosmos Sandboxing</span>
-            <span className="text-sm bg-gray-400 text-white px-2 py-1 rounded">Coming Soon</span>
+            <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" />
           </div>
         </Button>
       </div>

@@ -1,5 +1,6 @@
 import { ipcMain, app } from 'electron';
 import { generateAccount } from '../../core/account/generator.js';
+import { generateCosmosAccounts } from '../../core/account/cosmosGenerator.js';
 import { createWeb3Instance } from '../../core/blockchain/web3Utils.js';
 import fs from 'fs';
 import path from 'path';
@@ -13,7 +14,7 @@ if (!fs.existsSync(ACCOUNTS_DIR)) {
 }
 
 export function registerAccountHandlers() {
-  // Generate new account
+  // Generate new EVM account
   ipcMain.handle('account:generate', async (_event, rpcUrl: string) => {
     try {
       const web3 = createWeb3Instance(rpcUrl);
@@ -24,6 +25,19 @@ export function registerAccountHandlers() {
       return {
         success: true,
         data: { sender, receiver, secondAccount },
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Generate new Cosmos account
+  ipcMain.handle('account:generateCosmos', async (_event, addressPrefix: string) => {
+    try {
+      const accounts = await generateCosmosAccounts(addressPrefix);
+      return {
+        success: true,
+        data: accounts,
       };
     } catch (error: any) {
       return { success: false, error: error.message };

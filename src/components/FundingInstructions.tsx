@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Copy, CheckCircle2, Wallet, ArrowRight, RefreshCw } from 'lucide-react';
+import type { ChainType } from '../App';
 
 interface FundingInstructionsProps {
+  chainType: ChainType;
   senderAddress: string;
   secondAccountAddress: string;
   rpcUrl: string;
@@ -13,6 +15,7 @@ interface FundingInstructionsProps {
 }
 
 export function FundingInstructions({
+  chainType,
   senderAddress,
   secondAccountAddress,
   rpcUrl,
@@ -40,18 +43,37 @@ export function FundingInstructions({
   const checkBalance = async () => {
     setChecking(true);
     try {
-      const Web3 = (await import('web3')).default;
-      const w3 = new Web3(rpcUrl);
+      if (chainType === 'evm') {
+        const Web3 = (await import('web3')).default;
+        const w3 = new Web3(rpcUrl);
 
-      // Check sender balance
-      const senderBalanceWei = await w3.eth.getBalance(senderAddress);
-      const senderBalanceEth = w3.utils.fromWei(senderBalanceWei, 'ether');
-      setSenderBalance(senderBalanceEth);
+        // Check sender balance
+        const senderBalanceWei = await w3.eth.getBalance(senderAddress);
+        const senderBalanceEth = w3.utils.fromWei(senderBalanceWei, 'ether');
+        setSenderBalance(senderBalanceEth);
 
-      // Check second account balance
-      const secondBalanceWei = await w3.eth.getBalance(secondAccountAddress);
-      const secondBalanceEth = w3.utils.fromWei(secondBalanceWei, 'ether');
-      setSecondBalance(secondBalanceEth);
+        // Check second account balance
+        const secondBalanceWei = await w3.eth.getBalance(secondAccountAddress);
+        const secondBalanceEth = w3.utils.fromWei(secondBalanceWei, 'ether');
+        setSecondBalance(secondBalanceEth);
+      } else {
+        // Cosmos balance checking
+        const { StargateClient } = await import('@cosmjs/stargate');
+        const client = await StargateClient.connect(rpcUrl);
+
+        // Check sender balance
+        const senderCoins = await client.getAllBalances(senderAddress);
+        const senderCoin = senderCoins.find((c) => c.denom === nativeSymbol);
+        setSenderBalance(senderCoin ? (parseInt(senderCoin.amount) / 1_000_000).toFixed(6) : '0');
+
+        // Check second account balance
+        const secondCoins = await client.getAllBalances(secondAccountAddress);
+        const secondCoin = secondCoins.find((c) => c.denom === nativeSymbol);
+        setSecondBalance(secondCoin ? (parseInt(secondCoin.amount) / 1_000_000).toFixed(6) : '0');
+
+        client.disconnect();
+      }
+
     } catch (error) {
       console.error('Failed to check balance:', error);
       setSenderBalance('0');
@@ -66,7 +88,7 @@ export function FundingInstructions({
     // Set up interval to check balance every 10 seconds
     const interval = setInterval(checkBalance, 10000);
     return () => clearInterval(interval);
-  }, [senderAddress, secondAccountAddress, rpcUrl]);
+  }, [senderAddress, secondAccountAddress, rpcUrl, chainType]);
 
   const senderHasFunds = parseFloat(senderBalance) > 0;
   const secondHasFunds = parseFloat(secondBalance) > 0;
@@ -200,13 +222,19 @@ export function FundingInstructions({
               <h3 className="font-semibold text-blue-900 mb-3">How to fund both accounts:</h3>
               <ol className="space-y-2 text-sm text-blue-800 list-decimal list-inside">
                 <li>Copy <span className="font-bold">both addresses</span> above (Account 1 and Account 2)</li>
-                <li>Send at least <span className="font-bold text-blue-900">5 {nativeSymbol}</span> to <span className="font-bold">each address</span> from a faucet or your wallet</li>
+                <li>
+                  Send at least <span className="font-bold text-blue-900">
+                    {chainType === 'cosmos' ? '1000000 ' : '5 '}
+                    {chainType === 'cosmos' ? nativeSymbol : nativeSymbol}
+                  </span> to <span className="font-bold">each address</span> from a {chainType === 'cosmos' ? 'faucet' : 'faucet or your wallet'}
+                </li>
                 <li>Wait for both transactions to confirm</li>
                 <li>Click "Refresh Balances" to check both balances</li>
                 <li>Proceed to testing once <span className="font-bold">both accounts</span> are funded</li>
               </ol>
               <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                <strong>Note:</strong> Both accounts must be funded for TSS wallet testing to work properly.
+                <strong>Note:</strong> Both accounts must be funded for {chainType === 'cosmos' ? 'TSS signing' : 'TSS wallet'} testing to work properly.
+                {chainType === 'cosmos' && ' (Base denomination like uatom, uosmo, etc.)'}
               </div>
             </div>
 

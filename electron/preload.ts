@@ -10,17 +10,24 @@ export interface ElectronAPI {
 
   // Account operations
   generateAccount: (rpcUrl: string) => Promise<any>;
+  generateCosmosAccount: (addressPrefix: string) => Promise<any>;
   saveAccounts: (chainName: string, accounts: any) => Promise<void>;
   loadAccounts: (chainName: string) => Promise<any>;
 
   // Config operations
   saveChainConfig: (chainName: string, config: any) => Promise<void>;
   loadChainConfig: (chainName: string) => Promise<any>;
-  listChainConfigs: () => Promise<string[]>;
+  listChainConfigs: () => Promise<{ success: boolean; data?: string[]; error?: string }>;
   deleteChainConfig: (chainName: string) => Promise<void>;
 
   // Report operations
   exportReport: (results: any) => Promise<any>;
+
+  // Contract deployment operations
+  getGasPrice: (rpcUrl: string) => Promise<string>;
+  getNonce: (rpcUrl: string, address: string) => Promise<number>;
+  deployContract: (params: any) => Promise<any>;
+  fetchBytecode: (contractName: string) => Promise<any>;
 
   // Progress updates
   onProgressUpdate: (callback: (data: any) => void) => () => void;
@@ -41,6 +48,8 @@ const electronAPI: ElectronAPI = {
   // Account operations
   generateAccount: (rpcUrl: string) =>
     ipcRenderer.invoke('account:generate', rpcUrl),
+  generateCosmosAccount: (addressPrefix: string) =>
+    ipcRenderer.invoke('account:generateCosmos', addressPrefix),
   saveAccounts: (chainName: string, accounts: any) =>
     ipcRenderer.invoke('account:save', chainName, accounts),
   loadAccounts: (chainName: string) =>
@@ -59,6 +68,16 @@ const electronAPI: ElectronAPI = {
   // Report operations
   exportReport: (results: any) =>
     ipcRenderer.invoke('report:export', results),
+
+  // Contract deployment operations
+  getGasPrice: (rpcUrl: string) =>
+    ipcRenderer.invoke('contract:getGasPrice', rpcUrl),
+  getNonce: (rpcUrl: string, address: string) =>
+    ipcRenderer.invoke('contract:getNonce', rpcUrl, address),
+  deployContract: (params: any) =>
+    ipcRenderer.invoke('contract:deploy', params),
+  fetchBytecode: (contractName: string) =>
+    ipcRenderer.invoke('contract:fetchBytecode', contractName),
 
   // Progress updates
   onProgressUpdate: (callback: (data: any) => void) => {

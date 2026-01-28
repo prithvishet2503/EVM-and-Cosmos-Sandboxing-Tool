@@ -3,24 +3,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
 import { RefreshCw, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
-import type { ChainConfig } from '../App';
+import type { ChainConfig, ChainType } from '../App';
 
 interface AccountGenerationProps {
   chainConfig: Partial<ChainConfig>;
-  onAccountsGenerated: (accounts: {
-    sender: { address: string; privateKey: string };
-    receiver: { address: string; privateKey: string };
-    secondAccount: { address: string; privateKey: string };
-  }) => void;
+  chainType: ChainType;
+  onAccountsGenerated: (accounts: any) => void;
 }
 
-export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountGenerationProps) {
-  const [accounts, setAccounts] = useState({
-    sender: { address: '', privateKey: '' },
-    receiver: { address: '', privateKey: '' },
-    secondAccount: { address: '', privateKey: '' },
-  });
+export function AccountGeneration({ chainConfig, chainType, onAccountsGenerated }: AccountGenerationProps) {
+  const [accounts, setAccounts] = useState<any>(
+    chainType === 'evm'
+      ? {
+          sender: { address: '', privateKey: '' },
+          receiver: { address: '', privateKey: '' },
+          secondAccount: { address: '', privateKey: '' },
+        }
+      : {
+          sender: { address: '', mnemonic: '' },
+          receiver: { address: '', mnemonic: '' },
+          secondAccount: { address: '', mnemonic: '' },
+        }
+  );
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
 
@@ -32,12 +38,25 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
 
     setGenerating(true);
     try {
-      const result = await window.electronAPI.generateAccount(chainConfig.rpc);
-      if (result.success) {
-        setAccounts(result.data);
-        setGenerated(true);
+      if (chainType === 'evm') {
+        const result = await window.electronAPI.generateAccount(chainConfig.rpc);
+        if (result.success) {
+          setAccounts(result.data);
+          setGenerated(true);
+        } else {
+          alert('Failed to generate accounts');
+        }
       } else {
-        alert('Failed to generate accounts');
+        // Generate Cosmos accounts (mnemonics)
+        const result = await window.electronAPI.generateCosmosAccount(
+          (chainConfig as any).addressPrefix || 'cosmos'
+        );
+        if (result.success) {
+          setAccounts(result.data);
+          setGenerated(true);
+        } else {
+          alert('Failed to generate Cosmos accounts');
+        }
       }
     } catch (error) {
       console.error('Failed to generate accounts:', error);
@@ -86,10 +105,11 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
           <CardHeader className="bg-gradient-to-r from-blue-50 to-white border-b">
             <CardTitle className="text-gray-900 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-blue-600" />
-              Account Generation
+              {chainType === 'cosmos' ? 'Cosmos' : 'EVM'} Account Generation
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Generate secure wallet accounts for your tests
+              Generate secure {chainType === 'cosmos' ? 'mnemonic-based' : 'private key-based'} wallet
+              accounts
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
@@ -117,15 +137,15 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
                 {/* Success Message */}
                 <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <p className="text-green-700 font-medium">
-                    Accounts generated successfully!
-                  </p>
+                  <p className="text-green-700 font-medium">Accounts generated successfully!</p>
                 </div>
 
                 {/* Sender Account */}
                 <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <Label className="text-gray-900 font-semibold flex items-center gap-2">
-                    <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                    <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                      1
+                    </span>
                     Sender Account
                   </Label>
                   <div className="space-y-2">
@@ -138,13 +158,23 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
                       />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 mb-1">Private Key</p>
-                      <Input
-                        type="password"
-                        value={accounts.sender.privateKey}
-                        readOnly
-                        className="bg-white border-gray-300 text-gray-900 text-sm font-mono"
-                      />
+                      <p className="text-xs text-gray-600 mb-1">
+                        {chainType === 'cosmos' ? 'Mnemonic Phrase' : 'Private Key'}
+                      </p>
+                      {chainType === 'cosmos' ? (
+                        <Textarea
+                          value={accounts.sender.mnemonic}
+                          readOnly
+                          className="bg-white border-gray-300 text-gray-900 text-sm font-mono min-h-[80px]"
+                        />
+                      ) : (
+                        <Input
+                          type="password"
+                          value={accounts.sender.privateKey}
+                          readOnly
+                          className="bg-white border-gray-300 text-gray-900 text-sm font-mono"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -152,7 +182,9 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
                 {/* Receiver Account */}
                 <div className="space-y-2 p-4 bg-green-50 rounded-lg border border-green-200">
                   <Label className="text-gray-900 font-semibold flex items-center gap-2">
-                    <span className="bg-green-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                    <span className="bg-green-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                      2
+                    </span>
                     Receiver Account
                   </Label>
                   <div className="space-y-2">
@@ -165,13 +197,23 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
                       />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 mb-1">Private Key</p>
-                      <Input
-                        type="password"
-                        value={accounts.receiver.privateKey}
-                        readOnly
-                        className="bg-white border-gray-300 text-gray-900 text-sm font-mono"
-                      />
+                      <p className="text-xs text-gray-600 mb-1">
+                        {chainType === 'cosmos' ? 'Mnemonic Phrase' : 'Private Key'}
+                      </p>
+                      {chainType === 'cosmos' ? (
+                        <Textarea
+                          value={accounts.receiver.mnemonic}
+                          readOnly
+                          className="bg-white border-gray-300 text-gray-900 text-sm font-mono min-h-[80px]"
+                        />
+                      ) : (
+                        <Input
+                          type="password"
+                          value={accounts.receiver.privateKey}
+                          readOnly
+                          className="bg-white border-gray-300 text-gray-900 text-sm font-mono"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -179,7 +221,9 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
                 {/* Second Account (for TSS) */}
                 <div className="space-y-2 p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <Label className="text-gray-900 font-semibold flex items-center gap-2">
-                    <span className="bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                    <span className="bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                      3
+                    </span>
                     Second Account (TSS)
                   </Label>
                   <div className="space-y-2">
@@ -192,13 +236,23 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
                       />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 mb-1">Private Key</p>
-                      <Input
-                        type="password"
-                        value={accounts.secondAccount.privateKey}
-                        readOnly
-                        className="bg-white border-gray-300 text-gray-900 text-sm font-mono"
-                      />
+                      <p className="text-xs text-gray-600 mb-1">
+                        {chainType === 'cosmos' ? 'Mnemonic Phrase' : 'Private Key'}
+                      </p>
+                      {chainType === 'cosmos' ? (
+                        <Textarea
+                          value={accounts.secondAccount.mnemonic}
+                          readOnly
+                          className="bg-white border-gray-300 text-gray-900 text-sm font-mono min-h-[80px]"
+                        />
+                      ) : (
+                        <Input
+                          type="password"
+                          value={accounts.secondAccount.privateKey}
+                          readOnly
+                          className="bg-white border-gray-300 text-gray-900 text-sm font-mono"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -208,8 +262,16 @@ export function AccountGeneration({ chainConfig, onAccountsGenerated }: AccountG
                   <h3 className="font-semibold text-blue-900 mb-2">Important:</h3>
                   <ul className="space-y-1 text-sm text-blue-800 list-disc list-inside">
                     <li>These accounts have been generated locally and securely</li>
-                    <li>The sender account will need to be funded for testing</li>
-                    <li>Private keys are stored locally and encrypted</li>
+                    <li>
+                      {chainType === 'cosmos'
+                        ? 'Mnemonics use BIP39 standard with 24 words'
+                        : 'Private keys are 256-bit secp256k1 keys'}
+                    </li>
+                    <li>The sender and second accounts will need to be funded for testing</li>
+                    <li>
+                      {chainType === 'cosmos' ? 'Mnemonics' : 'Private keys'} are stored locally and
+                      encrypted
+                    </li>
                   </ul>
                 </div>
               </div>
