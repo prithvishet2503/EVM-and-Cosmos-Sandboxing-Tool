@@ -19,20 +19,26 @@ interface ProgressUpdate {
 }
 
 export function TestRunner({ chainConfig, onTestComplete }: TestRunnerProps) {
+  const isCosmosChain = chainConfig.chainType === 'cosmos';
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState<ProgressUpdate>({
     currentStep: 'Not started',
     progress: 0,
-    total: 6,
+    total: isCosmosChain ? 4 : 6,
     status: 'pending',
   });
   const [results, setResults] = useState<any>(null);
 
   const formatTestName = (key: string): string => {
     const nameMap: Record<string, string> = {
+      // EVM test names
       'legacyTransfer': 'Legacy Tx - EIP-155 (Type 0)',
       'tssTransfer': 'EIP-1559 Tx (Type 2)',
       'rpcTesting': 'RPC Methods Testing',
+      // Cosmos test names
+      'simpleTransfer': 'Simple Transfer',
+      'stepByStepTransfer': 'Step-by-Step Transfer',
+      // Common test names
       'balance': 'Balance Check',
       'chainConfig': 'Chain Configuration'
     };
@@ -63,7 +69,7 @@ export function TestRunner({ chainConfig, onTestComplete }: TestRunnerProps) {
     setProgress({
       currentStep: 'Starting tests...',
       progress: 0,
-      total: 6,
+      total: isCosmosChain ? 4 : 6,
       status: 'running',
     });
     setResults(null);

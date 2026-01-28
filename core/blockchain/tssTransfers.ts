@@ -75,11 +75,11 @@ export const executeTssTransfer = async (config: Config, params: TransferParams)
     };
 
     // Transaction Creation & Signing
-    const defaultCommon = EthCommon.default.forCustomChain(
-        'mainnet',
-        { name: config.chainName, networkId: config.networkId, chainId: config.chainId },
-        'london'
-    );
+    const defaultCommon = EthCommon.Common.custom({
+        name: config.chainName,
+        networkId: config.networkId,
+        chainId: config.chainId,
+    }, { hardfork: 'london' });
 
     const unsignedTx = EthTx.FeeMarketEIP1559Transaction.fromTxData(baseParams, { common: defaultCommon });
     const signableHex = unsignedTx.getMessageToSign(false).toString('hex');

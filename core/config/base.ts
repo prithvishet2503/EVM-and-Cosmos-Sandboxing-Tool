@@ -19,7 +19,7 @@ export abstract class Config {
     }
 
     get value(): string {
-        return "0.01"; //default value
+        return "0.0001"; //default value - reduced to prevent gas limit exceeded errors
     }
 
     async loadAccounts(chain: string) {

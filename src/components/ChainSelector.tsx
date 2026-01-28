@@ -3,12 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 
+import type { ChainType } from '../App';
+
 interface ChainSelectorProps {
+  chainType: ChainType;
   selectedChain: string | null;
   onSelectChain: (chain: string) => void;
 }
 
-export function ChainSelector({ selectedChain, onSelectChain }: ChainSelectorProps) {
+export function ChainSelector({ chainType, selectedChain, onSelectChain }: ChainSelectorProps) {
   const [chains, setChains] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +22,7 @@ export function ChainSelector({ selectedChain, onSelectChain }: ChainSelectorPro
   const loadChains = async () => {
     try {
       const result = await window.electronAPI.listChainConfigs();
-      if (result.success) {
+      if (result.success && result.data) {
         setChains(result.data);
       }
     } catch (error) {
@@ -42,9 +45,11 @@ export function ChainSelector({ selectedChain, onSelectChain }: ChainSelectorPro
   return (
     <Card className="bg-white border-gray-200 shadow-xl">
       <CardHeader className="bg-gradient-to-r from-blue-50 to-white border-b">
-        <CardTitle className="text-gray-900">Chain Configurations</CardTitle>
+        <CardTitle className="text-gray-900">
+          {chainType === 'cosmos' ? 'Cosmos' : 'EVM'} Chain Configurations
+        </CardTitle>
         <CardDescription className="text-gray-600">
-          Select or create a chain configuration
+          Select or create a {chainType === 'cosmos' ? 'Cosmos' : 'EVM'} chain configuration
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 pt-6">

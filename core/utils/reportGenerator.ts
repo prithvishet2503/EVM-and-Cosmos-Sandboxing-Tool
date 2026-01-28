@@ -3,9 +3,11 @@ import autoTable from 'jspdf-autotable';
 
 interface ChainConfig {
   chainName: string;
-  chainId: number;
+  chainId: number | string;
   rpc: string;
-  nativeSymbol: string;
+  nativeSymbol?: string;
+  denom?: string;
+  addressPrefix?: string;
   jiraTicket?: string;
 }
 
@@ -16,6 +18,7 @@ interface TestResults {
     data?: {
       address: string;
       balance: string;
+      denom?: string;
     };
     error?: string;
   };
@@ -40,6 +43,32 @@ interface TestResults {
       to: string;
       gasUsed: string;
       status: boolean;
+    };
+    error?: string;
+  };
+  simpleTransfer?: {
+    success: boolean;
+    data?: {
+      transactionHash: string;
+      blockHeight: number;
+      from: string;
+      to: string;
+      amount: string;
+      denom: string;
+      gasUsed: string;
+    };
+    error?: string;
+  };
+  stepByStepTransfer?: {
+    success: boolean;
+    data?: {
+      transactionHash: string;
+      blockHeight: number;
+      from: string;
+      to: string;
+      amount: string;
+      denom: string;
+      gasUsed: string;
     };
     error?: string;
   };
@@ -106,7 +135,9 @@ export function generateTestReport(results: TestResults): jsPDF {
   const chainData = [
     ['Chain Name', results.chainConfig.chainName],
     ['Chain ID', results.chainConfig.chainId.toString()],
-    ['Native Symbol', results.chainConfig.nativeSymbol],
+    ...(results.chainConfig.nativeSymbol ? [['Native Symbol', results.chainConfig.nativeSymbol]] : []),
+    ...(results.chainConfig.denom ? [['Denom', results.chainConfig.denom]] : []),
+    ...(results.chainConfig.addressPrefix ? [['Address Prefix', results.chainConfig.addressPrefix]] : []),
     ['RPC URL', results.chainConfig.rpc],
     ...(results.chainConfig.jiraTicket ? [['JIRA Ticket', results.chainConfig.jiraTicket]] : []),
   ];
@@ -148,10 +179,11 @@ export function generateTestReport(results: TestResults): jsPDF {
 
     const balanceData: string[][] = [];
     if (results.balance.success && results.balance.data) {
+      const unit = results.balance.data.denom || results.chainConfig.nativeSymbol || '';
       balanceData.push(
         ['Status', 'Success'],
         ['Address', results.balance.data.address],
-        ['Balance', `${results.balance.data.balance} ${results.chainConfig.nativeSymbol}`]
+        ['Balance', `${results.balance.data.balance} ${unit}`]
       );
     } else {
       balanceData.push(
@@ -317,6 +349,142 @@ export function generateTestReport(results: TestResults): jsPDF {
       },
       didParseCell: function(data) {
         if (data.cell.text[0] === 'Success' || data.cell.text[0] === 'Confirmed') {
+          data.cell.styles.textColor = [34, 139, 34];
+          data.cell.styles.fontStyle = 'bold';
+        } else if (data.cell.text[0] === 'Failed') {
+          data.cell.styles.textColor = [220, 20, 60];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // Simple Transfer Section (Cosmos)
+  if (results.simpleTransfer) {
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 102, 255);
+    doc.text('Simple Transfer', 14, yPosition);
+    yPosition += 2;
+    doc.setDrawColor(0, 102, 255);
+    doc.setLineWidth(0.5);
+    doc.line(14, yPosition, 60, yPosition);
+    yPosition += 6;
+
+    const simpleTransferData: string[][] = [];
+    if (results.simpleTransfer.success && results.simpleTransfer.data) {
+      const data = results.simpleTransfer.data;
+      simpleTransferData.push(
+        ['Status', 'Success'],
+        ['Transaction Hash', data.transactionHash],
+        ['Block Height', data.blockHeight.toString()],
+        ['From', data.from],
+        ['To', data.to],
+        ['Amount', `${data.amount} ${data.denom}`],
+        ['Gas Used', data.gasUsed]
+      );
+    } else {
+      simpleTransferData.push(
+        ['Status', 'Failed'],
+        ['Error', results.simpleTransfer.error || 'Unknown error']
+      );
+    }
+
+    autoTable(doc, {
+      startY: yPosition,
+      body: simpleTransferData,
+      theme: 'plain',
+      margin: { left: 14, right: 14 },
+      columnStyles: {
+        0: {
+          fontStyle: 'bold',
+          cellWidth: 55,
+          textColor: [70, 70, 70]
+        },
+        1: {
+          textColor: [50, 50, 50]
+        }
+      },
+      bodyStyles: {
+        fontSize: 9
+      },
+      didParseCell: function(data) {
+        if (data.cell.text[0] === 'Success') {
+          data.cell.styles.textColor = [34, 139, 34];
+          data.cell.styles.fontStyle = 'bold';
+        } else if (data.cell.text[0] === 'Failed') {
+          data.cell.styles.textColor = [220, 20, 60];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // Step-by-Step Transfer Section (Cosmos)
+  if (results.stepByStepTransfer) {
+    if (yPosition > 250) {
+      doc.addPage();
+      yPosition = 20;
+    }
+
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 102, 255);
+    doc.text('Step-by-Step Transfer', 14, yPosition);
+    yPosition += 2;
+    doc.setDrawColor(0, 102, 255);
+    doc.setLineWidth(0.5);
+    doc.line(14, yPosition, 80, yPosition);
+    yPosition += 6;
+
+    const stepTransferData: string[][] = [];
+    if (results.stepByStepTransfer.success && results.stepByStepTransfer.data) {
+      const data = results.stepByStepTransfer.data;
+      stepTransferData.push(
+        ['Status', 'Success'],
+        ['Transaction Hash', data.transactionHash],
+        ['Block Height', data.blockHeight.toString()],
+        ['From', data.from],
+        ['To', data.to],
+        ['Amount', `${data.amount} ${data.denom}`],
+        ['Gas Used', data.gasUsed]
+      );
+    } else {
+      stepTransferData.push(
+        ['Status', 'Failed'],
+        ['Error', results.stepByStepTransfer.error || 'Unknown error']
+      );
+    }
+
+    autoTable(doc, {
+      startY: yPosition,
+      body: stepTransferData,
+      theme: 'plain',
+      margin: { left: 14, right: 14 },
+      columnStyles: {
+        0: {
+          fontStyle: 'bold',
+          cellWidth: 55,
+          textColor: [70, 70, 70]
+        },
+        1: {
+          textColor: [50, 50, 50]
+        }
+      },
+      bodyStyles: {
+        fontSize: 9
+      },
+      didParseCell: function(data) {
+        if (data.cell.text[0] === 'Success') {
           data.cell.styles.textColor = [34, 139, 34];
           data.cell.styles.fontStyle = 'bold';
         } else if (data.cell.text[0] === 'Failed') {

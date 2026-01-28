@@ -5,6 +5,7 @@ import { registerChainOperationsHandlers } from './ipc/chainOperations.js';
 import { registerAccountHandlers } from './ipc/accountManager.js';
 import { registerConfigHandlers } from './ipc/configManager.js';
 import { registerReportHandlers } from './ipc/reportHandler.js';
+import { registerContractDeploymentHandlers } from './ipc/contractDeployment.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,6 +46,7 @@ app.whenReady().then(() => {
   registerAccountHandlers();
   registerConfigHandlers();
   registerReportHandlers();
+  registerContractDeploymentHandlers();
 
   createWindow();
 
